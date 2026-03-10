@@ -50,7 +50,7 @@ sudo chmod +x /usr/local/bin/aquatone
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/webscout.git
+git clone https://github.com/arkanesec/webscout.git
 cd webscout
 chmod +x webscout.sh
 ```
