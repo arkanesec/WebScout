@@ -125,7 +125,7 @@ install_aquatone() {
     chmod +x /usr/local/bin/aquatone
     rm -rf "$tmpdir"
 
-    success "aquatone installed → $(aquatone --version 2>/dev/null | head -1 || echo '/usr/local/bin/aquatone')"
+    success "aquatone installed → /usr/local/bin/aquatone"
 }
 
 check_deps() {
@@ -136,8 +136,8 @@ check_deps() {
         success "masscan installed."
     fi
 
-    # aquatone — auto-install if missing
-    if ! command -v aquatone &>/dev/null; then
+    # aquatone — auto-install if missing completely from common paths
+    if [[ ! -f "/usr/local/bin/aquatone" ]] && ! command -v aquatone &>/dev/null; then
         install_aquatone
     fi
 
@@ -285,7 +285,8 @@ echo ""
 # ── Stage 3: Aquatone ─────────────────────────────────────────────────────────
 info "Stage 3/3 — Running aquatone to capture screenshots..."
 
-aquatone \
+# Absolute path avoids sudo secure_path environment dropouts
+/usr/local/bin/aquatone \
     -out "$AQUATONE_DIR" \
     -screenshot-timeout 15000 \
     -http-timeout 8000 \
