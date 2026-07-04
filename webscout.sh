@@ -59,12 +59,18 @@ install_aquatone() {
     fi
 
     local arch
-    arch=$(uname -m)
+    # Rely on dpkg architecture tracking first; fall back to kernel architecture
+    if command -v dpkg &>/dev/null; then
+        arch=$(dpkg --print-architecture)
+    else
+        arch=$(uname -m)
+    fi
+
     case "$arch" in
-        x86_64)  arch="linux_amd64" ;;
-        aarch64) arch="linux_arm64" ;;
-        armv7*)  arch="linux_arm" ;;
-        *)       die "Unsupported arch: $arch" ;;
+        amd64|x86_64)  arch="linux_amd64" ;;
+        arm64|aarch64) arch="linux_arm64" ;;
+        armhf|armv7*)  arch="linux_arm" ;;
+        *)             die "Unsupported arch: $arch" ;;
     esac
 
     local tmpdir
@@ -82,10 +88,10 @@ install_aquatone() {
         release_json=$(wget -qO- "$latest_url" 2>/dev/null || true)
     fi
 
-    # Parse download URL from JSON (grep fallback — no jq needed)
+    # Parse download URL from JSON safely using single outer quotes
     local download_url=""
     if [[ -n "$release_json" ]]; then
-        download_url=$(echo "$release_json" | grep -o ""browser_download_url": *"[^"]*${arch}[^"]*\.zip"" | grep -o 'https://[^"]*' | head -1)
+        download_url=$(echo "$release_json" | grep -o '"browser_download_url": *"[^"]*'${arch}'[^"]*\.zip"' | grep -o 'https://[^"]*' | head -1)
     fi
 
     # Fallback to known-good URL if API failed
@@ -273,20 +279,19 @@ success "Target list saved: $TARGET_LIST"
 success "URL list saved:    $URL_LIST"
 echo ""
 info "Targets:"
-while IFS= read -r ip; do
-    echo "    $(grep -c "^$ip$" "$TARGET_LIST" &>/dev/null && echo '' )  $ip"
-done < "$TARGET_LIST"
+sed 's/^/    /' "$TARGET_LIST"
 echo ""
 
 # ── Stage 3: Aquatone ─────────────────────────────────────────────────────────
 info "Stage 3/3 — Running aquatone to capture screenshots..."
 
-cat "$URL_LIST" | aquatone \
+aquatone \
     -out "$AQUATONE_DIR" \
     -screenshot-timeout 15000 \
     -http-timeout 8000 \
     -scan-timeout 5000 \
-    -silent
+    -silent \
+    < "$URL_LIST"
 
 # ── Final summary ─────────────────────────────────────────────────────────────
 REPORT="$AQUATONE_DIR/aquatone_report.html"
